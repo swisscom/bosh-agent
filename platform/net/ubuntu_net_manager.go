@@ -299,7 +299,7 @@ auto lo
 iface lo inet loopback
 {{ range .DHCPConfigs }}
 auto {{ .Name }}
-iface {{ .Name }} inet dhcp
+iface {{ .Name }} inet{{ .Version6 }} dhcp
 {{ end }}{{ range .StaticConfigs }}
 auto {{ .Name }}
 iface {{ .Name }} inet static

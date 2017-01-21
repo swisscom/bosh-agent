@@ -1,6 +1,8 @@
 package net
 
 import (
+	"net"
+
 	boshsettings "github.com/cloudfoundry/bosh-agent/settings"
 	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
@@ -33,7 +35,16 @@ func (configs StaticInterfaceConfigurations) Swap(i, j int) {
 }
 
 type DHCPInterfaceConfiguration struct {
-	Name string
+	Name    string
+	Address string
+}
+
+func (c DHCPInterfaceConfiguration) Version6() string {
+	ip := net.ParseIP(c.Address)
+	if ip == nil || ip.To4() != nil {
+		return ""
+	}
+	return "6"
 }
 
 type DHCPInterfaceConfigurations []DHCPInterfaceConfiguration
@@ -72,7 +83,8 @@ func (creator interfaceConfigurationCreator) createInterfaceConfiguration(static
 	if networkSettings.IsDHCP() || networkSettings.Mac == "" {
 		creator.logger.Debug(creator.logTag, "Using dhcp networking")
 		dhcpConfigs = append(dhcpConfigs, DHCPInterfaceConfiguration{
-			Name: ifaceName,
+			Name:    ifaceName,
+			Address: networkSettings.IP,
 		})
 	} else {
 		creator.logger.Debug(creator.logTag, "Using static networking")
