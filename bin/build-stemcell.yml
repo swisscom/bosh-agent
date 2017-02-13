@@ -9,5 +9,8 @@ image_resource:
 inputs:
   - name: agent-src
 
+outputs:
+  - name: stemcell
+
 run:
   path: agent-src/bin/repack-stemcell.sh

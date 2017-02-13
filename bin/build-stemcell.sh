@@ -8,5 +8,7 @@ cd $bin/..
 
 ./bin/build-linux-amd64
 
-# todo -x?
-time fly -t production execute -p -i agent-src=. -c ./bin/build-stemcell.yml
+# necessary so that fly -x can be used
+mv out/bosh-agent bin/bosh-agent
+
+time fly -t production execute -x -p -i agent-src=. -o stemcell=out/ -c ./bin/build-stemcell.yml

@@ -30,6 +30,7 @@ wget -O- https://s3.amazonaws.com/bosh-core-stemcells/aws/bosh-stemcell-3312.15-
 	set -e;
 	cd $stemcell_dir
 	tar xvf $stemcell_tgz
+	new_ver=`date +%s`
 	(
 		set -e;
 		cd $image_dir
@@ -37,14 +38,13 @@ wget -O- https://s3.amazonaws.com/bosh-core-stemcells/aws/bosh-stemcell-3312.15-
 		mnt_dir=/mnt/stemcell
 		mkdir $mnt_dir
 		mount -o loop,offset=32256 root.img $mnt_dir
-		echo -n 0.0.`date +%s` > $mnt_dir/var/vcap/bosh/etc/stemcell_version
-		cp /tmp/build/*/agent-src/out/bosh-agent $mnt_dir/var/vcap/bosh/bin/bosh-agent
+		echo -n 0.0.${new_ver} > $mnt_dir/var/vcap/bosh/etc/stemcell_version
+		cp /tmp/build/*/agent-src/bin/bosh-agent $mnt_dir/var/vcap/bosh/bin/bosh-agent
 		umount $mnt_dir
 		tar czvf $stemcell_dir/image *
 	)
+	sed -i.bak "s/version: .*/version: 0.0.${new_ver}/" stemcell.MF
 	tar czvf $stemcell_tgz *
 )
 
-bosh upload-stemcell $stemcell_tgz || true
-
-sleep 10000
+cp $stemcell_tgz /tmp/build/*/stemcell/
