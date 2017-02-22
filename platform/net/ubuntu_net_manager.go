@@ -115,7 +115,7 @@ func (net UbuntuNetManager) SetupNetworking(networks boshsettings.Networks, errC
 			return err
 		}
 
-		net.restartNetworkingInterfaces(net.ifaceNames(dhcpConfigs, staticConfigs))
+		net.restartNetworkingInterfaces(dhcpConfigs, staticConfigs)
 	}
 
 	staticAddresses, dynamicAddresses := net.ifaceAddresses(staticConfigs, dhcpConfigs)
@@ -224,9 +224,30 @@ func (net UbuntuNetManager) broadcastIps(addresses []boship.InterfaceAddress, er
 	}()
 }
 
-func (net UbuntuNetManager) restartNetworkingInterfaces(ifaceNames []string) {
+func (net UbuntuNetManager) restartNetworkingInterfaces(dhcpConfigs []DHCPInterfaceConfiguration, staticConfigs []StaticInterfaceConfiguration) {
 	net.logger.Debug(UbuntuNetManagerLogTag, "Restarting network interfaces")
 
+	ifaceNames := net.ifaceNames(dhcpConfigs, staticConfigs)
+
+	ipv6Sysctls := []string{
+		"net.ipv6.conf.all.accept_ra=1",
+		"net.ipv6.conf.default.accept_ra=1",
+		"net.ipv6.conf.all.disable_ipv6=0",
+		"net.ipv6.conf.default.disable_ipv6=0",
+		"net.ipv6.conf.default.accept_redirects=1",
+		"net.ipv6.conf.all.accept_redirects=1",
+		"net.ipv6.route.flush=0",
+	}
+
+	for _, sysctl := range ipv6Sysctls {
+		_, _, _, err := net.cmdRunner.RunCommand("sysctl", sysctl)
+		if err != nil {
+			net.logger.Error(UbuntuNetManagerLogTag, "Enabling IPv6 '%s': %s", sysctl, err.Error())
+		}
+	}
+
+	// todo tries to kill dhclient6 even though it had ipv4 before
+	// todo restart of agent fails because metadata is accsessible only on ipv4
 	_, _, _, err := net.cmdRunner.RunCommand("ifdown", append([]string{"--force"}, ifaceNames...)...)
 	if err != nil {
 		net.logger.Error(UbuntuNetManagerLogTag, "Ignoring ifdown failure: %s", err.Error())
